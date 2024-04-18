@@ -36,12 +36,68 @@ if __name__=='__main__':
                           aggfunc='sum').reset_index().fillna(0)
     databeaucoupmieux.columns.name = None
     print(databeaucoupmieux,databeaucoupmieux.columns)
+    source = ColumnDataSource(databeaucoupmieux)
     ''''# Onglet 1
 
-    p1 = figure(x_axis_type="mercator", y_axis_type="mercator", 
-        active_scroll="wheel_zoom", title="Graphe 1")
-    p1.circle(x='x', y='y', size=5, alpha=0.7,source=data)
+    p1 = figure(x_axis_type="mercator", y_axis_type="mercator",
+     active_scroll="wheel_zoom", 
+     title="Nombre de sites de production d'énergie en 2021")
     p1.add_tile("CartoDB Positron")
+
+    #
+
+    taille_photo = df['photo'].apply(lambda x: x*0.5+10 if x>0 else 0)
+    taille_bio = df['bio'].apply(lambda x: x*0.5+10 if x>0 else 0)
+    taille_hydrau = df['hydrau'].apply(lambda x: x*0.5+10 if x>0 else 0)
+    taille_cogen = df['cogen'].apply(lambda x: x*0.5+10 if x>0 else 0)
+
+    source.add(taille_photo,"taille_photo")
+    source.add(taille_bio,"taille_bio")
+    source.add(taille_hydrau,"taille_hydrau")
+    source.add(taille_cogen,"taille_cogen")
+
+    gl1 = p1.asterisk('pointx','pointy',size='taille_photo', source=source,color="orange")
+    gl2 = p1.asterisk('pointx','pointy',size='taille_bio',source=source,color="green")
+    gl3 = p1.asterisk('pointx','pointy',size='taille_hydrau',source=source,color="blue")
+    gl4 = p1.asterisk('pointx','pointy',size='taille_cogen',source=source,color="red")
+
+    #Outil de survol
+    hover_tool = HoverTool(tooltips=[( 'Commune ',   '@commune'),
+                                    ('Sites photovoltaïques','@photo'),
+                                    ('Sites bio-énergie','@bio'),
+                                    ('Sites hydrauliques','@hydrau'),
+                                    ('Sites de cogénération','@cogen')])
+    p1.add_tools(hover_tool)
+
+    #La légende
+    legend = Legend(items=[("Sites photovoltaïques", [gl1]),
+        ("Sites bio-énergie", [gl2]),
+        ("Sites hydrauliques", [gl3]),
+        ("Sites de cogéneration", [gl4]),], location = 'top')
+    p1.add_layout(legend,'below')
+
+    legend.click_policy="hide"
+    legend.title = "Cliquer sur les séries à afficher"
+
+    #Pickers
+    picker1 = ColorPicker(title="Couleur des sites photovoltaïques",color=gl1.glyph.line_color,width=100)
+    picker1.js_link('color', gl1.glyph, 'line_color')
+
+    picker2 = ColorPicker(title="Couleur des sites bio-énergie",color=gl2.glyph.line_color,width=100)
+    picker2.js_link('color', gl2.glyph, 'line_color')
+
+    picker3 = ColorPicker(title="Couleur des sites hydrauliques",color=gl3.glyph.line_color,width=100)
+    picker3.js_link('color', gl3.glyph, 'line_color')
+
+    picker4 = ColorPicker(title="Couleur des sites de cogéneration",color=gl4.glyph.line_color,width=100)
+    picker4.js_link('color', gl4.glyph, 'line_color')
+
+
+
+
+    #Préparation des onglets
+    layout = row(p1,column(picker1, picker2, picker3, picker4))
+
     
 
 
@@ -57,7 +113,7 @@ if __name__=='__main__':
 
     p4 = figure(title="Graphe 4")  
 
-    tab1 = TabPanel(child=p1, title="Graphe 1")
+    tab1 = TabPanel(child=layout, title="Graphe 1")
     tab2 = TabPanel(child=p2, title="Graphe 2")
     tab3 = TabPanel(child=p3, title="Graphe 3")
     tab4 = TabPanel(child=p4, title="Graphe 4")
