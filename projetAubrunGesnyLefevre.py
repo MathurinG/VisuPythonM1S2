@@ -25,7 +25,7 @@ if __name__=='__main__':
 
     # Import des données
 
-    data=pd.read_csv('eco-counter-data.csv',sep=';') # données de comptage des velos de rennes metropole: https://data.rennesmetropole.fr/explore/dataset/eco-counter-data/table/?dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6ImVjby1jb3VudGVyLWRhdGEiLCJvcHRpb25zIjp7fX0sImNoYXJ0cyI6W3siYWxpZ25Nb250aCI6dHJ1ZSwidHlwZSI6ImxpbmUiLCJmdW5jIjoiQVZHIiwieUF4aXMiOiJjb3VudHMiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjNjZjMmE1In1dLCJ4QXhpcyI6ImRhdGUiLCJtYXhwb2ludHMiOiIiLCJ0aW1lc2NhbGUiOiJ5ZWFyIiwic29ydCI6IiJ9XSwiZGlzcGxheUxlZ2VuZCI6dHJ1ZSwiYWxpZ25Nb250aCI6dHJ1ZX0%3D&location=14,48.11631,-1.68065&basemap=0a029a
+    data=pd.read_csv('eco-counter-data.csv',sep=';') # données de comptage de pieton de rennes metropole: https://data.rennesmetropole.fr/explore/dataset/eco-counter-data/table/?dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6ImVjby1jb3VudGVyLWRhdGEiLCJvcHRpb25zIjp7fX0sImNoYXJ0cyI6W3siYWxpZ25Nb250aCI6dHJ1ZSwidHlwZSI6ImxpbmUiLCJmdW5jIjoiQVZHIiwieUF4aXMiOiJjb3VudHMiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjNjZjMmE1In1dLCJ4QXhpcyI6ImRhdGUiLCJtYXhwb2ludHMiOiIiLCJ0aW1lc2NhbGUiOiJ5ZWFyIiwic29ydCI6IiJ9XSwiZGlzcGxheUxlZ2VuZCI6dHJ1ZSwiYWxpZ25Nb250aCI6dHJ1ZX0%3D&location=14,48.11631,-1.68065&basemap=0a029a
     data['x']=[coor_wgs84_to_web_mercator(list(map(float, coord.split(', '))))[0] for coord in data["geo"]]
     data['y']=[coor_wgs84_to_web_mercator(list(map(float, coord.split(', '))))[1] for coord in data["geo"]]
     data['annee']=[date.year for date in pd.to_datetime(data['date'])]
