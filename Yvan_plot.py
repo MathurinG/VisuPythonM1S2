@@ -7,9 +7,10 @@ from bokeh.models import HoverTool, ColumnDataSource, ColorPicker, Legend
 from bokeh.models import TabPanel, Tabs, Div
 from bokeh.models import GMapPlot, GMapOptions, Circle, DataRange1d, PanTool, WheelZoomTool, BoxSelectTool
 from bokeh.layouts import row, column
+from bokeh.palettes import Set1
 import math
 
-#def fonctions :
+# Def des fonctions :
 from bokeh.layouts import row, column
 def coor_zone(lon, lat):
     k = 6378137
@@ -17,20 +18,20 @@ def coor_zone(lon, lat):
     y = (np.log(np.tan((90 + lat[0]) * np.pi/360.0)) * k,np.log(np.tan((90 + lat[1]) * np.pi/360.0)) * k)
     return (x,y)
 
-#récupération et construction du necessaire pour les plots 
-#(les données ont été préalablement travaillé dans prepa_donnes.py) :
+# Récupération et construction du necessaire pour les plots :
+# (les données ont été préalablement travaillé dans prepa_donnes.py)
 data=pd.read_json('data.json')
 latitudes = [48.08,48.14]
 longitudes = [-1.72,-1.6]
 x_merc,y_merc = coor_zone(longitudes,latitudes)
 source = ColumnDataSource(data)
 
-#construction des figures :
+data1 = pd.read_json("data_1.json")
+noms = data1.columns[-3:]
+# Construction des figures :
 # Onglet 1 :
-p1 = figure(width = 1000,height = 600,x_range = x_merc,y_range=y_merc,x_axis_type="mercator", y_axis_type="mercator", title="pieton")
+p1 = figure(width = 1000,height = 600,x_range = x_merc,y_range=y_merc,x_axis_type="mercator", y_axis_type="mercator", title="Nombre de piétons par année")
 p1.add_tile("CartoDB Positron")
-
-
 gl1 = p1.circle('x','y',size='2024', source=source,color="yellow")
 gl2 = p1.circle('x','y',size='2023', source=source,color="green",visible=False)
 gl3 = p1.circle('x','y',size='2022', source=source,color="red",visible=False)
@@ -91,7 +92,9 @@ p1 = row(p1, color_picker_column, sizing_mode='scale_width')
 
 # Onglet 2 :
 p2 = figure(title="Graphe 2")
-
+for name, color in zip( noms, Set1[3]):
+    p2.line(data1.index,data1[name],line_width=2, color=color, alpha=0.8, legend_label=name,muted_color=color, muted_alpha=0.2,)   
+p2.legend.click_policy="mute"
 # Onglet 3
 p3 = figure(title="Graphe 3")
 
