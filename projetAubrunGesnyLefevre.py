@@ -3,11 +3,13 @@ import json
 import numpy as np
 from bokeh.plotting import figure, show
 import pandas as pd
-from bokeh.models import HoverTool, ColumnDataSource, ColorPicker, Legend
+from bokeh.models import HoverTool, ColumnDataSource, ColorPicker, Legend, FactorRange
 from bokeh.models import TabPanel, Tabs, Div
 from bokeh.models import GMapPlot, GMapOptions, Circle, DataRange1d, PanTool, WheelZoomTool, BoxSelectTool
 from bokeh.layouts import row, column
 import math
+from bokeh.transform import factor_cmap
+from bokeh.palettes import Category10
 
 # Définition de fonction
 
@@ -24,41 +26,44 @@ def coor_wgs84_to_web_mercator(coord):
 if __name__=='__main__':
 
     # Import des données
-
+    noms_jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+    noms_mois = {1:"Janvier",2: "Février",3: "Mars",4: "Avril",5: "Mai",6: "Juin",7: "Juillet",8:"Aout",9:"Septembre",10:"Octobre",11:"Novembre",12:"Decembre"}
     data=pd.read_csv('eco-counter-data.csv',sep=';') # données de comptage de pieton de rennes metropole: https://data.rennesmetropole.fr/explore/dataset/eco-counter-data/table/?dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6ImVjby1jb3VudGVyLWRhdGEiLCJvcHRpb25zIjp7fX0sImNoYXJ0cyI6W3siYWxpZ25Nb250aCI6dHJ1ZSwidHlwZSI6ImxpbmUiLCJmdW5jIjoiQVZHIiwieUF4aXMiOiJjb3VudHMiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjNjZjMmE1In1dLCJ4QXhpcyI6ImRhdGUiLCJtYXhwb2ludHMiOiIiLCJ0aW1lc2NhbGUiOiJ5ZWFyIiwic29ydCI6IiJ9XSwiZGlzcGxheUxlZ2VuZCI6dHJ1ZSwiYWxpZ25Nb250aCI6dHJ1ZX0%3D&location=14,48.11631,-1.68065&basemap=0a029a
     data['x']=[coor_wgs84_to_web_mercator(list(map(float, coord.split(', '))))[0] for coord in data["geo"]]
     data['y']=[coor_wgs84_to_web_mercator(list(map(float, coord.split(', '))))[1] for coord in data["geo"]]
     data['annee']=[date.year for date in pd.to_datetime(data['date'])]
-    datamieux=data.groupby(by=['annee','name']).agg({'counts':sum,'x':np.mean,'y':np.mean})
-    databeaucoupmieux = datamieux.pivot_table(index=['name', 'x', 'y'],
+    data['mois']=[noms_mois[date.month] for date in pd.to_datetime(data['date'])]
+    data['jour']=[noms_jours[date.weekday()] for date in pd.to_datetime(data['date'])]
+
+    # Onglet 1
+    ## Création du jeu de donnée aggréger par lieu et par année
+    dfcarto = data.groupby(by=['annee','name']).agg({'counts':sum,'x':np.mean,'y':np.mean}).pivot_table(index=['name', 'x', 'y'],
                           columns='annee',
                           values='counts',
                           aggfunc='sum').reset_index().fillna(0)
-    databeaucoupmieux.columns.name = None
-    new_column_names = {old_column_name: str(old_column_name) for old_column_name in databeaucoupmieux.columns}
-    databeaucoupmieux.rename(columns=new_column_names, inplace=True)
-    print(databeaucoupmieux,databeaucoupmieux.columns)
-    source = ColumnDataSource(databeaucoupmieux)
-    # Onglet 1
+    dfcarto.columns.name = None
+    new_column_names = {old_column_name: str(old_column_name) for old_column_name in dfcarto.columns}
+    dfcarto.rename(columns=new_column_names, inplace=True)#Passage du format de colonne de int à str
+    source = ColumnDataSource(dfcarto)
 
     p1 = figure(x_axis_type="mercator", y_axis_type="mercator",
      active_scroll="wheel_zoom", 
-     title="Nombre de piétons controler à Rennes")
+     title="Nombre de piétons controlés à Rennes")
     p1.add_tile("CartoDB Positron")
 
-    #
+    ## Création du jeu de données
 
-    taille_2024 = databeaucoupmieux['2024'].apply(lambda x: x*0.0001)
-    taille_2023 = databeaucoupmieux['2023'].apply(lambda x: x*0.0001)
-    taille_2022 = databeaucoupmieux['2022'].apply(lambda x: x*0.0001)
-    taille_2021 = databeaucoupmieux['2021'].apply(lambda x: x*0.0001)
-    taille_2020 = databeaucoupmieux['2020'].apply(lambda x: x*0.0001)
-    taille_2019 = databeaucoupmieux['2019'].apply(lambda x: x*0.0001)
-    taille_2018 = databeaucoupmieux['2018'].apply(lambda x: x*0.0001)
-    taille_2017 = databeaucoupmieux['2017'].apply(lambda x: x*0.0001)
-    taille_2016 = databeaucoupmieux['2016'].apply(lambda x: x*0.0001)
-    taille_2015 = databeaucoupmieux['2015'].apply(lambda x: x*0.0001)
-    taille_2014 = databeaucoupmieux['2014'].apply(lambda x: x*0.0001)
+    taille_2024 = dfcarto['2024'].apply(lambda x: x*0.0001)
+    taille_2023 = dfcarto['2023'].apply(lambda x: x*0.0001)
+    taille_2022 = dfcarto['2022'].apply(lambda x: x*0.0001)
+    taille_2021 = dfcarto['2021'].apply(lambda x: x*0.0001)
+    taille_2020 = dfcarto['2020'].apply(lambda x: x*0.0001)
+    taille_2019 = dfcarto['2019'].apply(lambda x: x*0.0001)
+    taille_2018 = dfcarto['2018'].apply(lambda x: x*0.0001)
+    taille_2017 = dfcarto['2017'].apply(lambda x: x*0.0001)
+    taille_2016 = dfcarto['2016'].apply(lambda x: x*0.0001)
+    taille_2015 = dfcarto['2015'].apply(lambda x: x*0.0001)
+    taille_2014 = dfcarto['2014'].apply(lambda x: x*0.0001)
 
 
     source.add(taille_2024,"taille_2024")
@@ -85,7 +90,7 @@ if __name__=='__main__':
     gl10 = p1.circle('x','y',size='taille_2015', source=source,color="brown")
     gl11 = p1.circle('x','y',size='taille_2014', source=source,color="cyan")
 
-    #Outil de survol
+    ## Création de l'hovertool
     hover_tool = HoverTool(tooltips=[("Nom de l'emplacement ",'@name'),
                                     ('2024','@2024'),
                                     ('2023','@2023'),
@@ -100,7 +105,7 @@ if __name__=='__main__':
                                     ('2014','@2014')])
     p1.add_tools(hover_tool)
 
-    #La légende
+    ## Création de la légende
     legend = Legend(items=[("2024", [gl1]),
         ("2023", [gl2]),
         ("2022", [gl3]),
@@ -117,7 +122,7 @@ if __name__=='__main__':
     legend.click_policy="hide"
     legend.title = "Cliquer sur les années à afficher"
 
-    #Pickers
+    ## Création des Pickers
     picker1 = ColorPicker(title="Couleur pour les données de 2024",color=gl1.glyph.line_color,width=100)
     picker1.js_link('color', gl1.glyph, 'line_color')
 
@@ -152,15 +157,29 @@ if __name__=='__main__':
     picker11.js_link('color', gl11.glyph, 'line_color')
 
 
-    #Préparation des onglets
+    ## Agencement de la page
     layout = row(p1,column(picker1, picker2, picker3, picker4, picker5, picker6, picker7, picker8, picker9, picker10, picker11),sizing_mode='scale_width')
-    
     
 
 
     # Onglet 2
+    ## Création du jeu de données aggréger par mois et par jour en gardant le nombre moyen de piéton observés par jour
+    dfparmoisetjour=data.groupby(by=['mois','jour']).agg({'counts':np.mean}).pivot_table(index='mois', columns='jour', values='counts', aggfunc='sum').reset_index()
+    x = [ (mois, jour) for mois in noms_mois.values() for jour in noms_jours]
+    counts = sum(zip(dfparmoisetjour['Lundi'],dfparmoisetjour['Mardi'],dfparmoisetjour['Mercredi'],dfparmoisetjour['Jeudi'],dfparmoisetjour['Vendredi'],dfparmoisetjour['Samedi'],dfparmoisetjour['Dimanche']), ())
+    source2 = ColumnDataSource(data=dict(x=x, counts=counts))
 
-    p2 = figure(title="Graphe 2")
+    p2 = figure(x_range=FactorRange(*x), height=350, title="Nombre de piétons moyen selon les jours du mois",
+            toolbar_location=None, tools="hover",tooltips=[("Mois, Jour",'@x'),
+                                    ('Nombre moyen de piétons','@counts')])
+    ## Création d'une palette avec une couleur par jour de la semaine
+    palette = Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]
+    ## Création du 2nd graphique
+    p2.vbar(x='x', top='counts', width=0.9, source=source2,color=factor_cmap('x', palette=palette, factors=x))
+    p2.y_range.start = 0
+    p2.x_range.range_padding = 0.1
+    p2.xaxis.major_label_orientation = 1
+    p2.xgrid.grid_line_color = None
 
     # Onglet 3
 
@@ -168,15 +187,19 @@ if __name__=='__main__':
 
     # Onglet 4
 
-    p4 = figure(title="Graphe 4")  
+    p4 = figure(title="Graphe 4")
 
-    tab1 = TabPanel(child=layout, title="Graphe 1")
-    tab2 = TabPanel(child=p2, title="Graphe 2")
+    # Création des différents onglets sur la page html Bokeh
+    tab1 = TabPanel(child=layout, title="Nombre de piétons controlés à Rennes")
+    tab2 = TabPanel(child=p2, title="Nombre de piétons moyen selon les jours du mois")
     tab3 = TabPanel(child=p3, title="Graphe 3")
     tab4 = TabPanel(child=p4, title="Graphe 4")
-    tabs = Tabs(tabs = [tab1, tab2, tab3, tab4])
+    tabs = Tabs(tabs = [tab1, tab2, tab3, tab4], sizing_mode="scale_both")
+    # Création de l'en-tête de la page
     div = Div(text="""<h1 style="text-align: center;">Visualisation du nombre de piétons mesurés par Rennes Métropole</h1>
-    <p style="text-align: center;">L'objectif est de visualiser selon les années où on été prise les mesures du nombres de piétons à Rennes Métropoles et comment ce nombre évolue</p>
-    <p style="text-align: center;">auteurs: Baptiste Aubrun, Mathurin Gesny, Yvan Lefevre</p>""")
+    <p style="text-align: center;">L'objectif est de visualiser les mesures du nombre de piétons effectuées à Rennes par Rennes Métropole, de suivre l'évolution de ce nombre au fil des années et des saisons, ainsi que de comprendre les méthodes utilisées pour effectuer ces mesures.</p>
+    <p style="text-align: center;">Auteurs: Baptiste Aubrun, Mathurin Gesny, Yvan Lefevre</p>""")
+    # Agencement de la page
     page = column(div,tabs, sizing_mode="scale_both")
+    # Affichage de la page
     show(page)
