@@ -24,7 +24,7 @@ if __name__=='__main__':
     # Import des données
     noms_jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
     noms_mois = {1:"Janvier",2: "Février",3: "Mars",4: "Avril",5: "Mai",6: "Juin",7: "Juillet",8:"Aout",9:"Septembre",10:"Octobre",11:"Novembre",12:"Decembre"}
-    data=pd.read_csv('eco-counter-data.csv',sep=';') # données de comptage de pieton de rennes metropole: https://data.rennesmetropole.fr/explore/dataset/eco-counter-data/table/?dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6ImVjby1jb3VudGVyLWRhdGEiLCJvcHRpb25zIjp7fX0sImNoYXJ0cyI6W3siYWxpZ25Nb250aCI6dHJ1ZSwidHlwZSI6ImxpbmUiLCJmdW5jIjoiQVZHIiwieUF4aXMiOiJjb3VudHMiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjNjZjMmE1In1dLCJ4QXhpcyI6ImRhdGUiLCJtYXhwb2ludHMiOiIiLCJ0aW1lc2NhbGUiOiJ5ZWFyIiwic29ydCI6IiJ9XSwiZGlzcGxheUxlZ2VuZCI6dHJ1ZSwiYWxpZ25Nb250aCI6dHJ1ZX0%3D&location=14,48.11631,-1.68065&basemap=0a029a
+    data=pd.read_csv('eco-counter-data.csv',sep=';') # données de comptage de velo de rennes metropole: https://data.rennesmetropole.fr/explore/dataset/eco-counter-data/table/?dataChart=eyJxdWVyaWVzIjpbeyJjb25maWciOnsiZGF0YXNldCI6ImVjby1jb3VudGVyLWRhdGEiLCJvcHRpb25zIjp7fX0sImNoYXJ0cyI6W3siYWxpZ25Nb250aCI6dHJ1ZSwidHlwZSI6ImxpbmUiLCJmdW5jIjoiQVZHIiwieUF4aXMiOiJjb3VudHMiLCJzY2llbnRpZmljRGlzcGxheSI6dHJ1ZSwiY29sb3IiOiIjNjZjMmE1In1dLCJ4QXhpcyI6ImRhdGUiLCJtYXhwb2ludHMiOiIiLCJ0aW1lc2NhbGUiOiJ5ZWFyIiwic29ydCI6IiJ9XSwiZGlzcGxheUxlZ2VuZCI6dHJ1ZSwiYWxpZ25Nb250aCI6dHJ1ZX0%3D&location=14,48.11631,-1.68065&basemap=0a029a
     data['x']=[coor_wgs84_to_web_mercator(list(map(float, coord.split(', '))))[0] for coord in data["geo"]]
     data['y']=[coor_wgs84_to_web_mercator(list(map(float, coord.split(', '))))[1] for coord in data["geo"]]
     data['annee']=[date.year for date in pd.to_datetime(data['date'])]
@@ -43,7 +43,7 @@ if __name__=='__main__':
 
     p1 = figure(x_axis_type="mercator", y_axis_type="mercator",
      active_scroll="wheel_zoom", 
-     title="Nombre de piétons controlés à Rennes")
+     title="Nombre de velos controlés à Rennes")
     p1.add_tile("CartoDB Positron")
 
     ## Création du jeu de données
@@ -158,15 +158,15 @@ if __name__=='__main__':
 
 
     # Onglet 2
-    ## Création du jeu de données aggréger par mois et par jour en gardant le nombre moyen de piéton observés par jour
+    ## Création du jeu de données aggréger par mois et par jour en gardant le nombre moyen de velo observés par jour
     dfparmoisetjour=data.groupby(by=['mois','jour']).agg({'counts':np.mean}).pivot_table(index='mois', columns='jour', values='counts', aggfunc='sum').reset_index()
     x = [ (mois, jour) for mois in noms_mois.values() for jour in noms_jours]
     counts = sum(zip(dfparmoisetjour['Lundi'],dfparmoisetjour['Mardi'],dfparmoisetjour['Mercredi'],dfparmoisetjour['Jeudi'],dfparmoisetjour['Vendredi'],dfparmoisetjour['Samedi'],dfparmoisetjour['Dimanche']), ())
     source2 = ColumnDataSource(data=dict(x=x, counts=counts))
 
-    p2 = figure(x_range=FactorRange(*x), height=350, title="Nombre de piétons moyen selon les jours du mois",
+    p2 = figure(x_range=FactorRange(*x), height=350, title="Nombre de velos moyen selon les jours du mois",
             toolbar_location=None, tools="hover",tooltips=[("Mois, Jour",'@x'),
-                                    ('Nombre moyen de piétons','@counts')])
+                                    ('Nombre moyen de velos','@counts')])
     ## Création d'une palette avec une couleur par jour de la semaine
     palette = Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]+Category10[7]
     ## Création du 2nd graphique
@@ -185,7 +185,7 @@ if __name__=='__main__':
     df_p3 = df_p3.groupby(by='annee').sum()
     noms = df_p3.columns[-3:]
     ## Afichage de la figure
-    p3 = figure(title="Evolution du nombre de piéton observé par Rennes Métropole selon les lieux")
+    p3 = figure(title="Evolution du nombre de velo observé par Rennes Métropole selon les lieux")
     for name, color in zip( noms, Set1[3]):
         p3.line(df_p3.index,df_p3[name],line_width=2, color=color, alpha=0.8, legend_label=name,muted_color=color, muted_alpha=0.2)   
     p3.legend.click_policy="mute"
@@ -201,7 +201,7 @@ if __name__=='__main__':
     source = ColumnDataSource(data=dict(base=classes, upper=upper, lower=lower))
     ## Création de la figure
     p4 = figure(height=400, x_range=classes,
-            title="Nombre de pieton observé par jour selon le lieu")
+            title="Nombre de velo observé par jour selon le lieu")
     p4.xgrid.grid_line_color = None
     ## Ajout de la ligne représentant l'écart entre le quartile 1/5 et 4/5
     error = Whisker(base="base", upper="upper", lower="lower", source=source,
@@ -222,14 +222,14 @@ if __name__=='__main__':
 
     layout2 = row(p4, column (spinner1, spinner2))
     # Création des différents onglets sur la page html Bokeh
-    tab1 = TabPanel(child=layout, title="Nombre de piétons controlés à Rennes")
-    tab2 = TabPanel(child=p2, title="Nombre de piétons moyen selon les jours du mois")
-    tab3 = TabPanel(child=p3, title="Evolution du nombre de piéton observé par Rennes Métropole selon les lieux")
-    tab4 = TabPanel(child=layout2, title="Nombre de pieton observé par jour selon le lieu")
+    tab1 = TabPanel(child=layout, title="Nombre de velos controlé à Rennes")
+    tab2 = TabPanel(child=p2, title="Nombre de velos moyen selon les jours du mois")
+    tab3 = TabPanel(child=p3, title="Evolution du nombre de velo observé par Rennes Métropole selon les lieux")
+    tab4 = TabPanel(child=layout2, title="Nombre de velo observé par jour selon le lieu")
     tabs = Tabs(tabs = [tab1, tab2, tab3, tab4], sizing_mode="scale_both")
     # Création de l'en-tête de la page
-    div = Div(text="""<h1 style="text-align: center;">Visualisation du nombre de piétons mesuré par Rennes Métropole</h1>
-    <p style="text-align: center;">L'objectif est de visualiser les mesures du nombre de piétons effectuées à Rennes par Rennes Métropole, de suivre l'évolution de ce nombre au fil des années et des saisons, ainsi que de comprendre les méthodes utilisées pour effectuer ces mesures.</p>
+    div = Div(text="""<h1 style="text-align: center;">Visualisation du nombre de velos mesuré par Rennes Métropole</h1>
+    <p style="text-align: center;">L'objectif est de visualiser les mesures du nombre de velos effectuées à Rennes par Rennes Métropole, de suivre l'évolution de ce nombre au fil des années et des saisons, ainsi que de comprendre les méthodes utilisées pour effectuer ces mesures.</p>
     <p style="text-align: center;">Auteurs: Baptiste Aubrun, Mathurin Gesny, Yvan Lefevre</p>""")
     # Agencement de la page
     page = column(div,tabs, sizing_mode="scale_both")
