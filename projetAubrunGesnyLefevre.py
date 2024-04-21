@@ -1,16 +1,12 @@
 # Import de module
-import json
 import numpy as np
 from bokeh.plotting import figure, show
 import pandas as pd
-from bokeh.models import HoverTool, ColumnDataSource, ColorPicker, Legend, FactorRange
-from bokeh.models import TabPanel, Tabs, Div
-from bokeh.models import GMapPlot, GMapOptions, Circle, DataRange1d, PanTool, WheelZoomTool, BoxSelectTool
+from bokeh.models import HoverTool, ColumnDataSource, ColorPicker, Legend, FactorRange, Whisker
+from bokeh.models import TabPanel, Tabs, Div, Spinner
 from bokeh.layouts import row, column
-import math
-from bokeh.transform import factor_cmap
-from bokeh.palettes import Category10
-
+from bokeh.transform import factor_cmap, jitter
+from bokeh.palettes import Category10, Set1
 # Définition de fonction
 
 def coor_wgs84_to_web_mercator(coord):
@@ -34,7 +30,6 @@ if __name__=='__main__':
     data['annee']=[date.year for date in pd.to_datetime(data['date'])]
     data['mois']=[noms_mois[date.month] for date in pd.to_datetime(data['date'])]
     data['jour']=[noms_jours[date.weekday()] for date in pd.to_datetime(data['date'])]
-
     # Onglet 1
     ## Création du jeu de donnée aggréger par lieu et par année
     dfcarto = data.groupby(by=['annee','name']).agg({'counts':sum,'x':np.mean,'y':np.mean}).pivot_table(index=['name', 'x', 'y'],
@@ -182,21 +177,58 @@ if __name__=='__main__':
     p2.xgrid.grid_line_color = None
 
     # Onglet 3
-
-    p3 = figure(title="Graphe 3")
+    ## Création du jeu de données
+    df_p3 = data.groupby(by=['annee','name']).agg({'counts':sum}).reset_index()
+    dum = pd.get_dummies(df_p3['name'])
+    dum = dum.mul(df_p3['counts'], axis=0)
+    df_p3 = pd.concat([df_p3,dum],axis=1)
+    df_p3 = df_p3.groupby(by='annee').sum()
+    noms = df_p3.columns[-3:]
+    ## Afichage de la figure
+    p3 = figure(title="Evolution du nombre de piéton observé par Rennes Métropole selon les lieux")
+    for name, color in zip( noms, Set1[3]):
+        p3.line(df_p3.index,df_p3[name],line_width=2, color=color, alpha=0.8, legend_label=name,muted_color=color, muted_alpha=0.2)   
+    p3.legend.click_policy="mute"
+    p3.legend.location = "top_left"
 
     # Onglet 4
+    ## Création des classes pour le graphique
+    classes = list(sorted(data["name"].unique()))
+    ## Création du dataframe pour le graphique
+    df_par_lieu = data.groupby("name")
+    upper = df_par_lieu.counts.quantile(0.80)
+    lower = df_par_lieu.counts.quantile(0.20)
+    source = ColumnDataSource(data=dict(base=classes, upper=upper, lower=lower))
+    ## Création de la figure
+    p4 = figure(height=400, x_range=classes,
+            title="Nombre de pieton observé par jour selon le lieu")
+    p4.xgrid.grid_line_color = None
+    ## Ajout de la ligne représentant l'écart entre le quartile 1/5 et 4/5
+    error = Whisker(base="base", upper="upper", lower="lower", source=source,
+                    level="annotation", line_width=2)
+    error.upper_head.size=20
+    error.lower_head.size=20
+    p4.add_layout(error)
+    ## Affichage des valeurs
+    scatter=p4.scatter(jitter("name", 0.3, range=p4.x_range), "counts", source=data,
+            alpha=0.5, size=13, line_color="white",
+            color=factor_cmap("name", "Light7", classes))
+    ## Création des deux spinner pour modifier l'affichage des valeurs
+    spinner1 = Spinner(title="Taille des cercles", low=0,high=60, step=5, value=scatter.glyph.size) 
+    spinner1.js_link("value", scatter.glyph, "size")
 
-    p4 = figure(title="Graphe 4")
+    spinner2 = Spinner(title="Transparence", low=0,high=1, step=0.1, value=scatter.glyph.fill_alpha) 
+    spinner2.js_link("value", scatter.glyph, "fill_alpha")
 
+    layout2 = row(p4, column (spinner1, spinner2))
     # Création des différents onglets sur la page html Bokeh
     tab1 = TabPanel(child=layout, title="Nombre de piétons controlés à Rennes")
     tab2 = TabPanel(child=p2, title="Nombre de piétons moyen selon les jours du mois")
-    tab3 = TabPanel(child=p3, title="Graphe 3")
-    tab4 = TabPanel(child=p4, title="Graphe 4")
+    tab3 = TabPanel(child=p3, title="Evolution du nombre de piéton observé par Rennes Métropole selon les lieux")
+    tab4 = TabPanel(child=layout2, title="Nombre de pieton observé par jour selon le lieu")
     tabs = Tabs(tabs = [tab1, tab2, tab3, tab4], sizing_mode="scale_both")
     # Création de l'en-tête de la page
-    div = Div(text="""<h1 style="text-align: center;">Visualisation du nombre de piétons mesurés par Rennes Métropole</h1>
+    div = Div(text="""<h1 style="text-align: center;">Visualisation du nombre de piétons mesuré par Rennes Métropole</h1>
     <p style="text-align: center;">L'objectif est de visualiser les mesures du nombre de piétons effectuées à Rennes par Rennes Métropole, de suivre l'évolution de ce nombre au fil des années et des saisons, ainsi que de comprendre les méthodes utilisées pour effectuer ces mesures.</p>
     <p style="text-align: center;">Auteurs: Baptiste Aubrun, Mathurin Gesny, Yvan Lefevre</p>""")
     # Agencement de la page
